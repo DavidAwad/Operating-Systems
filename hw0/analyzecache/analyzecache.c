@@ -3,7 +3,7 @@
 #include "analyzecache.h"
 #include <time.h> 
 #include <string.h>
-
+// 
 
 const int powers[20] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512,
 	1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,};
@@ -39,7 +39,7 @@ int cacheLine(){
 			break;
 		}	
 
-		printf("i:%d\n", i);
+		//printf("i:%d\n", i);
 		/*we're going to access every i'th thing to analyze runtime */
 
 		int accesses;
@@ -61,7 +61,7 @@ int cacheLine(){
 
 		// now we have the time it took to traverse the array 
 		//traversals[i] = (cpu_time_used / accesses) ; 
-		traversals[i] = (cpu_time_used ) ; 
+		traversals[i] = (cpu_time_used / powers[i]  ) ; 
 		/* traversals is now an array of all of the times it took to perform the same number of accesses on a chunk  of data. We can see when that started to even out */ 
 	}
 	int convergence = trendCheck(&traversals); 
@@ -87,7 +87,6 @@ int trendCheck(double *traversals){
 }
 
 double causeMiss(int cacheSize){
-	printf("shits happening!!! \n\n\n\n\n");
 	char *line = malloc(sizeof(char)*cacheSize); 
 	int i,j;
 	double cpu_time_used=0, lastHit=0; 
@@ -111,7 +110,7 @@ double causeMiss(int cacheSize){
 		//printf("cpu time is %lf",cpu_time_used);
 		if(lastHit > 0){
 			printf("bigger than zero\n");
-			if(2 * lastHit < cpu_time_used ){
+			if( lastHit < cpu_time_used ){
 				printf("cachemiss at %d ", i ); 
 				return cpu_time_used ;
 			}
