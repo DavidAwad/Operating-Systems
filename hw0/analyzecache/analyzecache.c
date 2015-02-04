@@ -61,7 +61,7 @@ int cacheLine(){
 
 		// now we have the time it took to traverse the array 
 		//traversals[i] = (cpu_time_used / accesses) ; 
-		traversals[i] = (cpu_time_used / powers[i]  ) ; 
+		traversals[i] = (cpu_time_used ) ; 
 		/* traversals is now an array of all of the times it took to perform the same number of accesses on a chunk  of data. We can see when that started to even out */ 
 	}
 	int convergence = trendCheck(&traversals); 
