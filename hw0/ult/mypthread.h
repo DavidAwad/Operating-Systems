@@ -1,25 +1,34 @@
 #ifndef H_MYPTHREAD
 #define H_MYPTHREAD
 
-#define STACK_SIZE 8192
+#define STACK_SIZE 4096
 #define THREAD_COUNT 512
 
 #include<stdio.h>
 #include<ucontext.h>
 
+
+//Status Enum
+typedef enum {
+	UNUSED,
+	ACTIVE,
+	PAUSED
+} mypthread_status;
+
 // Types
 typedef struct {
-	int thread_id;
-	int active; //Bool
+	// Define any fields you might need inside here.
+} mypthread_attr_t;
+
+typedef struct {
+	mypthread_status status;
+	mypthread_attr_t attr;
 	ucontext_t ctx;
 	void *(*func) (void *);
 	void *argv;
 	char stk[STACK_SIZE];
 } mypthread_t;
 
-typedef struct {
-	// Define any fields you might need inside here.
-} mypthread_attr_t;
 
 // Functions
 int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
