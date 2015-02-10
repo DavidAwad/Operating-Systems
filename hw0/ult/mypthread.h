@@ -1,9 +1,20 @@
 #ifndef H_MYPTHREAD
 #define H_MYPTHREAD
 
+#define STACK_SIZE 8192
+#define THREAD_COUNT 512
+
+#include<stdio.h>
+#include<ucontext.h>
+
 // Types
 typedef struct {
-	// Define any fields you might need inside here.
+	int thread_id;
+	int active; //Bool
+	ucontext_t ctx;
+	void *(*func) (void *);
+	void *argv;
+	char stk[STACK_SIZE];
 } mypthread_t;
 
 typedef struct {
@@ -34,14 +45,14 @@ typedef int mypthread_mutex_t;
 typedef int mypthread_mutexattr_t;
 
 inline int mypthread_mutex_init(mypthread_mutex_t *mutex,
-			const mypthread_mutexattr_t *attr) { return 0; }
+			const mypthread_mutexattr_t *attr);
 
-inline int mypthread_mutex_destroy(mypthread_mutex_t *mutex) { return 0; }
+inline int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
 
-inline int mypthread_mutex_lock(mypthread_mutex_t *mutex) { return 0; }
+inline int mypthread_mutex_lock(mypthread_mutex_t *mutex);
 
-inline int mypthread_mutex_trylock(mypthread_mutex_t *mutex) { return 0; }
+inline int mypthread_mutex_trylock(mypthread_mutex_t *mutex);
 
-inline int mypthread_mutex_unlock(mypthread_mutex_t *mutex) { return 0; }
+inline int mypthread_mutex_unlock(mypthread_mutex_t *mutex);
 
 #endif
