@@ -96,9 +96,9 @@ double caugeMiss(int cacheSize){
 	return cpu_time_used - lastHit ; 
 }
 
-#define CACHEBLOCK 16384 
+#define CACHEBLOCK 32768 
 
-int blockSize(int lineSize){
+double blockSize(int lineSize){
 	int i,j,k;
 	double cpu_time_used=0, lastTime=0;
 	double timeMeasure [CACHEBLOCK] ;
@@ -119,7 +119,7 @@ int blockSize(int lineSize){
 		}
 		/* reset k */
 		for(k=0;k<2000;k++){
-			for(j=0;j<1000;j++){
+			for(j=0;j<100;j++){
 
 			}
 		}		
@@ -128,7 +128,7 @@ int blockSize(int lineSize){
 		/* reset k */
 		start = clock();
 		for(k=0;k<2000;k++){
-			for(j=0;j<1000;j++){
+			for(j=0;j<100;j++){
 			}
 		}
 		end = clock();
@@ -137,23 +137,24 @@ int blockSize(int lineSize){
 	}
 	lastTime = timeMeasure[0]; 
 	for(i=1;i<CACHEBLOCK;i++){
-		if( timeMeasure[i]  ==  lastTime ){
+		if( (timeMeasure[i] - lastTime) > 0   ){
 			break;
 		}	
 		cpu_time_used = timeMeasure[i] ; 
 		lastTime = timeMeasure[i-1] ; 
-		printf("cpu_time is %lf and lasTime is %lf\n", cpu_time_used, lastTime);
+		//printf("cpu_time is %lf and lasTime is %lf\n", cpu_time_used, lastTime);
+
 	}
-	return i;
+	return (double)( (double) i / 1024);
 }
 
 int main(int argc, char *argv[]){
 	int lineSize = cacheLine(); 
 	double cachePenalty = caugeMiss(lineSize); 
-	int block = blockSize(lineSize) ;
-	printf("this is the blocksize %d\n", block) ; 
+	double block = blockSize(lineSize) ;
+	/* printf("this is the blocksize %d\n", block) ; */ 
 	printf("Cache Block/Line Size: %d B\n", lineSize);
-	printf("Cache Size: %d KB\n", block );
+	printf("Cache Size: %d KB\n",  (int)block );
 	printf("Cache Miss Penalty: %lf us\n", cachePenalty ); 
 	return 0;
 }
