@@ -27,8 +27,9 @@ typedef struct {
 	void *(*func) (void *);
 	void *argv;
 	char stk[STACK_SIZE];
-} mypthread_t;
+} mypthread_real;
 
+typedef mypthread_real* mypthread_t;
 
 // Functions
 int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,

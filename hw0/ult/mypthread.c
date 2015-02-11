@@ -1,54 +1,58 @@
 #include"mypthread.h"
 
 
-static mypthread_t threadPool[THREAD_COUNT];
-static mypthread_t *currThread;
+static mypthread_real threadPool[THREAD_COUNT];
+static mypthread_real *currThread;
 static int countThreads;
+//Used for the first time that create is called to store context of main
+static int isInit; 
 
 //Internal function declaration
-mypthread_t *getThreadWithStatus(mypthread_status status);
+mypthread_real *getThreadWithStatus(mypthread_status status);
+#define getUnusedThread() getThreadWithStatus(UNUSED);
+#define getActiveThread() getThreadWithStatus(ACTIVE);
+#define getPausedThread() getThreadWithStatus(PAUSED);
 
-/*
-typedef struct {
-	mypthread_status status;
-	mypthread_attr_t attr;
-	void *(*func) (void *);
-	void *argv;
-	ucontext_t ctx;
-	char stk[STACK_SIZE];
-} mypthread_t;
-*/
 int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 			void *(*start_routine) (void *), void *arg) {
+
+	if(!isInit) {
+		fprintf(stderr,"needs to init!");
+		exit(0);
+	}
 	
 	if(countThreads == THREAD_COUNT) {
 		//panic!
-		fprintf(stderr, "Too many thread");
+		fprintf(stderr, "Too many thread\n");
 		exit(EXIT_FAILURE);
 	}
 
+	mypthread_real *ret;
+
 	//Find UNUSED thread
-	thread = getThreadWithStatus(UNUSED);
-	if(thread == NULL) {
+	ret = getUnusedThread();
+	if(ret == NULL) {
 		//panic!
-		fprintf(stderr, "Couldn't find UNUSED thread");
+		fprintf(stderr, "Couldn't find UNUSED thread\n");
 		exit(EXIT_FAILURE);
 	}
 
 	countThreads++;
 
-	if(getcontext(&thread->ctx) != 0) {
+	if(getcontext(&ret->ctx) != 0) {
 		//panic!
-		fprintf(stderr, "Unable to get context");
+		fprintf(stderr, "Unable to get context\n");
 		exit(EXIT_FAILURE);
 	}
-	thread->ctx.uc_stack.ss_sp = thread->stk;
-	thread->ctx.uc_stack.ss_size = STACK_SIZE;
+	ret->ctx.uc_stack.ss_sp = ret->stk;
+	ret->ctx.uc_stack.ss_size = STACK_SIZE;
 
-	thread->func = start_routine;
-	thread->argv = arg;
+	ret->func = start_routine;
+	ret->argv = arg;
 
-	thread->status = PAUSED;
+	ret->status = PAUSED;
+
+	thread = &ret;
 
 	return 0;
 }
@@ -64,7 +68,7 @@ int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
  */
 
 void mypthread_exit(void *retval) {	
-	mypthread_t *tempThread;
+	mypthread_real *tempThread;
 
 	currThread->status = UNUSED;
 	countThreads--;
@@ -74,10 +78,10 @@ void mypthread_exit(void *retval) {
 	}
 
 	tempThread = currThread;
-	currThread = getThreadWithStatus(PAUSED);
+	currThread = getPausedThread();
 	if(!currThread) {
 		//panic!
-		fprintf(stderr, "Unable to find paused thread!");
+		fprintf(stderr, "Unable to find paused thread!\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -85,30 +89,76 @@ void mypthread_exit(void *retval) {
 
 	if(setcontext(&(currThread->ctx)) == -1) {
 		//panic!
-		fprintf(stderr, "Unable to set context!");
+		fprintf(stderr, "Unable to set context!\n");
 		exit(EXIT_FAILURE);
 	}
 
 }
 
 int mypthread_yield(void) {
+	mypthread_real *tempThread;
+
+	currThread->status = UNUSED; //Set to Unused instead of paused so getThread doesn't return this
+
+	tempThread = currThread;
+	currThread = getPausedThread();
+	if(!currThread) {
+		//panic!
+		fprintf(stderr, "Unable to find paused thread!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	tempThread->status = PAUSED;
+	currThread->status = ACTIVE;
+
+	if(setcontext(&(currThread->ctx)) == -1) {
+		//panic!
+		fprintf(stderr, "Unable to set context!\n");
+		exit(EXIT_FAILURE);
+	}
+
 	return -1;
 }
 
 int mypthread_join(mypthread_t thread, void **retval) {
+	mypthread_real *tempThread;
+	mypthread_real *argThread = thread;
+
+	if(argThread == NULL) {
+		//error!
+		fprintf(stderr, "Null ptr recived by mypthread_join\n");
+		return -1;
+	}
+	if(argThread->status == UNUSED) {
+		//error!
+		fprintf(stderr, "Recived an uninitialized thread\n");
+		return -1;
+	}
+
+	currThread->status = PAUSED;
+
+	currThread = argThread;
+	currThread->status = ACTIVE;
+
+	if(setcontext(&(currThread->ctx)) == -1) {
+		//panic!
+		fprintf(stderr, "Unable to set context!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return 0;
 	
 }
 
 //HELPER FUNCTIONS
-mypthread_t *getThreadWithStatus(mypthread_status status) {
+mypthread_real *getThreadWithStatus(mypthread_status status) {
 	int i=0;
-	mypthread_t *currThread = threadPool;
+	mypthread_real *currThread = threadPool;
 	for(;i<THREAD_COUNT;i++) {
 		if((currThread+i)->status == status) {
 			return currThread+i;
 		}
 	}
-
 	return NULL; //error, handled by caller
 }
 
