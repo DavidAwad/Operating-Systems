@@ -85,6 +85,7 @@ double caugeMiss(int cacheSize){
 	line[cacheSize +3] = 'c'; 
 	end = clock();
 	cpu_time_used = ( (double)(end - start) );
+
 	start = clock();
 	for(i=0;i<20000;i++){
 		for(j=0;j<10000;j++){
@@ -95,26 +96,55 @@ double caugeMiss(int cacheSize){
 	return cpu_time_used - lastHit ; 
 }
 
+#define CACHEBLOCK 16384 
+
 int blockSize(int lineSize){
-	int i,j;
+	int i,j,k;
 	double cpu_time_used=0, lastTime=0;
-	double timeMeasure [10749] ;
+	double timeMeasure [CACHEBLOCK] ;
 	clock_t start, end;
 	int stride = lineSize; 
-	for(i=1; i<10749; i++){
+	for(i=1; i<CACHEBLOCK; i+=stride){
 		/* keep stride constant and time interation through array until time gets huge.*/
 		char *tempBlock = calloc(  (sizeof(char) * i ) , 1  ) ;
+		/* reset j */
 		for(j=0;j<i;j++){
 			char temp = tempBlock[j];
 		}
+		/* reset j */
+		/* load current array into memory */ 
 		start = clock();
-		for(j=0;j<i;j+=stride){
+		for(j=0;j<i;j++){
 			char temp = tempBlock[j];
 		}
+		/* reset k */
+		for(k=0;k<2000;k++){
+			for(j=0;j<1000;j++){
+
+			}
+		}		
 		end = clock();
 		cpu_time_used = ((double)(end - start));
-		timeMeasure[i] = cpu_time_used; 
-	}	
+		/* reset k */
+		start = clock();
+		for(k=0;k<2000;k++){
+			for(j=0;j<1000;j++){
+			}
+		}
+		end = clock();
+		lastTime = ((double ) (end - start)); 
+		timeMeasure[i] = cpu_time_used - lastTime; 
+	}
+	lastTime = timeMeasure[0]; 
+	for(i=1;i<CACHEBLOCK;i++){
+		if( timeMeasure[i]  ==  lastTime ){
+			break;
+		}	
+		cpu_time_used = timeMeasure[i] ; 
+		lastTime = timeMeasure[i-1] ; 
+		printf("cpu_time is %lf and lasTime is %lf\n", cpu_time_used, lastTime);
+	}
+	return i;
 }
 
 int main(int argc, char *argv[]){
