@@ -63,6 +63,11 @@ int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 void mypthread_exit(void *retval) {	
 	mypthread_real *tempThread;
 
+	if(!currThread) {
+		//I don't think this is an error
+		exit(0);
+	}
+
 	currThread->status = UNUSED;
 	countThreads--;
 
@@ -85,7 +90,6 @@ void mypthread_exit(void *retval) {
 		fprintf(stderr, "Unable to set context!\n");
 		exit(EXIT_FAILURE);
 	}
-
 }
 
 int mypthread_yield(void) {
@@ -93,6 +97,21 @@ int mypthread_yield(void) {
 }
 
 int mypthread_join(mypthread_t thread, void **retval) {
+
+	if(thread == 0) {
+		//Error, either by user or yield getPausedThread() failed
+		fprintf(stderr, "Something bad happened\n");
+		return -1;
+	}
+
+	if(currThread = NULL) {
+		//Should only happen on very first attempted join/ yield
+		//Means main thread needs to be set up
+
+	}
+
+
+	/*
 	mypthread_real *tempThread;
 	mypthread_real *argThread = thread;
 
@@ -120,6 +139,7 @@ int mypthread_join(mypthread_t thread, void **retval) {
 
 	return 0;
 	
+	*/
 }
 
 //HELPER FUNCTIONS
