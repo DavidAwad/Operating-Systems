@@ -24,8 +24,6 @@ typedef struct {
 	mypthread_status status;
 	mypthread_attr_t attr;
 	ucontext_t ctx;
-	void *(*func) (void *);
-	void *argv;
 	char stk[STACK_SIZE];
 } mypthread_real;
 

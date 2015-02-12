@@ -4,8 +4,6 @@
 static mypthread_real threadPool[THREAD_COUNT];
 static mypthread_real *currThread;
 static int countThreads;
-//Used for the first time that create is called to store context of main
-static int isInit; 
 
 //Internal function declaration
 mypthread_real *getThreadWithStatus(mypthread_status status);
@@ -16,11 +14,6 @@ mypthread_real *getThreadWithStatus(mypthread_status status);
 int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 			void *(*start_routine) (void *), void *arg) {
 
-	if(!isInit) {
-		fprintf(stderr,"needs to init!");
-		exit(0);
-	}
-	
 	if(countThreads == THREAD_COUNT) {
 		//panic!
 		fprintf(stderr, "Too many thread\n");
@@ -46,13 +39,13 @@ int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 	}
 	ret->ctx.uc_stack.ss_sp = ret->stk;
 	ret->ctx.uc_stack.ss_size = STACK_SIZE;
-
-	ret->func = start_routine;
-	ret->argv = arg;
+	//ret->ctx.ul_link = ;
+	
+	makecontext(&(ret->ctx), (void (*)(void))start_routine, 1, arg);
 
 	ret->status = PAUSED;
 
-	thread = &ret;
+	*thread = ret; //This line is important, I think it needs to be fixed
 
 	return 0;
 }
@@ -96,28 +89,7 @@ void mypthread_exit(void *retval) {
 }
 
 int mypthread_yield(void) {
-	mypthread_real *tempThread;
-
-	currThread->status = UNUSED; //Set to Unused instead of paused so getThread doesn't return this
-
-	tempThread = currThread;
-	currThread = getPausedThread();
-	if(!currThread) {
-		//panic!
-		fprintf(stderr, "Unable to find paused thread!\n");
-		exit(EXIT_FAILURE);
-	}
-
-	tempThread->status = PAUSED;
-	currThread->status = ACTIVE;
-
-	if(setcontext(&(currThread->ctx)) == -1) {
-		//panic!
-		fprintf(stderr, "Unable to set context!\n");
-		exit(EXIT_FAILURE);
-	}
-
-	return -1;
+	return mypthread_join(getPausedThread(), NULL);
 }
 
 int mypthread_join(mypthread_t thread, void **retval) {
@@ -143,7 +115,7 @@ int mypthread_join(mypthread_t thread, void **retval) {
 	if(setcontext(&(currThread->ctx)) == -1) {
 		//panic!
 		fprintf(stderr, "Unable to set context!\n");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	return 0;
