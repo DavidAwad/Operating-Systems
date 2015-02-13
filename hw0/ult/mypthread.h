@@ -31,15 +31,20 @@ typedef struct {
 
 typedef mypthread_real* mypthread_t;
 
+#define mypthread_create( x , y , z , a) mypthread_create_( x , y , z , a , AT )
+#define mypthread_exit( x ) mypthread_exit_( x , AT )
+#define mypthread_yield( ) mypthread_yield_( AT )
+#define mypthread_join( x , y) mypthread_join_( x , y , AT )
+
 // Functions
-int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
-			void *(*start_routine) (void *), void *arg);
+int mypthread_create_(mypthread_t *thread, const mypthread_attr_t *attr,
+			void *(*start_routine) (void *), void *arg, char *location);
 
-void mypthread_exit(void *retval);
+void mypthread_exit_(void *retval, char *location);
 
-int mypthread_yield(void);
+int mypthread_yield_(char *location);
 
-int mypthread_join(mypthread_t thread, void **retval);
+int mypthread_join_(mypthread_t thread, void **retval, char *location);
 
 
 /* Don't touch anything after this line.

@@ -1,16 +1,21 @@
 CC=gcc
-CFLAGS=-g
+CFLAGS=-g -O0
 
 DEMO=mtsort
 
-default: help
+default: nick
 
-all: basic preemptive system
+all: basic preemptive system nick
 
 help:
 	@echo "We can build in two ways (each of these will build $(DEMO).c):"
 	@echo "\tmake basic - Build $(DEMO) with the basic ULT implementation."
 	@echo "\tmake system - Build the $(DEMO) using the system pthreads implementation."
+
+nick: $(DEMO).c mypthread.c mypthread.h
+	$(CC) -o smokeweed.o $(CFLAGS) -c nicksort.c
+	$(CC) $(CFLAGS) -c mypthread.c
+	$(CC) -o fuccbois mypthread.o smokeweed.o
 
 basic: $(DEMO).c mypthread.c mypthread.h
 	$(CC) $(CFLAGS) -c $(DEMO).c
