@@ -8,6 +8,8 @@
 #include<stdlib.h>
 #include<ucontext.h>
 
+#include"util.h"
+
 //Status Enum
 typedef enum {
 	UNUSED,

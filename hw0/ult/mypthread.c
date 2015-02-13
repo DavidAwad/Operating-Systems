@@ -3,39 +3,35 @@
 
 static mypthread_real threadPool[THREAD_COUNT];
 static mypthread_real *currThread;
-static int countThreads;
+static int countThreads = 1;
 
 //Internal function declaration
+//Don't want these functions to be exterally visible
 mypthread_real *getThreadWithStatus(mypthread_status status);
-#define getUnusedThread() getThreadWithStatus(UNUSED);
-#define getActiveThread() getThreadWithStatus(ACTIVE);
-#define getPausedThread() getThreadWithStatus(PAUSED);
+#define getUnusedThread() getThreadWithStatus(UNUSED)
+#define getActiveThread() getThreadWithStatus(ACTIVE)
+#define getPausedThread() getThreadWithStatus(PAUSED)
 
 int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 			void *(*start_routine) (void *), void *arg) {
 
-	if(countThreads == THREAD_COUNT) {
-		//panic!
-		fprintf(stderr, "Too many thread\n");
-		exit(EXIT_FAILURE);
+	if(countThreads == THREAD_COUNT-1) {
+		panic("Too many threads");
 	}
 
 	mypthread_real *ret;
+	//Equiv: mypthread_t ret;
 
 	//Find UNUSED thread
 	ret = getUnusedThread();
 	if(ret == NULL) {
-		//panic!
-		fprintf(stderr, "Couldn't find UNUSED thread\n");
-		exit(EXIT_FAILURE);
+		panic("Couldn't find UNUSED thread");
 	}
 
 	countThreads++;
 
-	if(getcontext(&ret->ctx) != 0) {
-		//panic!
-		fprintf(stderr, "Unable to get context\n");
-		exit(EXIT_FAILURE);
+	if(getcontext(&(ret->ctx)) != 0) {
+		panic("Unable to get context");
 	}
 	ret->ctx.uc_stack.ss_sp = ret->stk;
 	ret->ctx.uc_stack.ss_size = STACK_SIZE;
@@ -61,11 +57,15 @@ int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
  */
 
 void mypthread_exit(void *retval) {	
-	mypthread_real *tempThread;
+
+	if(!currThread && (countThreads == 1)) {
+		//User calls exit before create
+		exit(0);
+	}
 
 	if(!currThread) {
-		//I don't think this is an error
-		exit(0);
+		//User calls exit before join or yield, but after create
+		printf("Need to make this edge case");
 	}
 
 	currThread->status = UNUSED;
@@ -75,20 +75,15 @@ void mypthread_exit(void *retval) {
 		exit(0);
 	}
 
-	tempThread = currThread;
 	currThread = getPausedThread();
 	if(!currThread) {
-		//panic!
-		fprintf(stderr, "Unable to find paused thread!\n");
-		exit(EXIT_FAILURE);
+		panic("Unable to find paused thread!");
 	}
 
 	currThread->status = ACTIVE;
 
 	if(setcontext(&(currThread->ctx)) == -1) {
-		//panic!
-		fprintf(stderr, "Unable to set context!\n");
-		exit(EXIT_FAILURE);
+		panic("Unable to set context!");
 	}
 }
 
@@ -97,34 +92,25 @@ int mypthread_yield(void) {
 }
 
 int mypthread_join(mypthread_t thread, void **retval) {
+	//cry
 
 	if(thread == 0) {
 		//Error, either by user or yield getPausedThread() failed
-		fprintf(stderr, "Something bad happened\n");
-		return -1;
+		panic("Something bad happened");
 	}
 
 	if(currThread = NULL) {
 		//Should only happen on very first attempted join/ yield
 		//Means main thread needs to be set up
-
 	}
 
+	if(thread->status == UNUSED) {
+		panic("Recived uninitialized thread");
+	}
 
 	/*
 	mypthread_real *tempThread;
 	mypthread_real *argThread = thread;
-
-	if(argThread == NULL) {
-		//error!
-		fprintf(stderr, "Null ptr recived by mypthread_join\n");
-		return -1;
-	}
-	if(argThread->status == UNUSED) {
-		//error!
-		fprintf(stderr, "Recived an uninitialized thread\n");
-		return -1;
-	}
 
 	currThread->status = PAUSED;
 
@@ -154,7 +140,10 @@ mypthread_real *getThreadWithStatus(mypthread_status status) {
 	return NULL; //error, handled by caller
 }
 
-
+void panic_(char *err, char* location) {
+	fprintf(stderr, "Error %s: %s\n", err, location);
+	exit(EXIT_FAILURE);
+}
 
 
 //
