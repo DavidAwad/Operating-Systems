@@ -1,26 +1,19 @@
 CC=gcc
-CFLAGS=-g -O0
+CFLAGS=-g
 
 DEMO=mtsort
 
-default: nick
+default: help
 
-all: basic preemptive system nick
+all: basic preemptive system
 
 help:
 	@echo "We can build in two ways (each of these will build $(DEMO).c):"
 	@echo "\tmake basic - Build $(DEMO) with the basic ULT implementation."
 	@echo "\tmake system - Build the $(DEMO) using the system pthreads implementation."
 
-nick: $(DEMO).c mypthread.c mypthread.h
-	$(CC) -o smokeweed.o $(CFLAGS) -c nicksort.c
-	$(CC) $(CFLAGS) -c mypthread.c
-	$(CC) -o fuccbois mypthread.o smokeweed.o
-
 basic: $(DEMO).c mypthread.c mypthread.h
-	$(CC) $(CFLAGS) -c $(DEMO).c
-	$(CC) $(CFLAGS) -c mypthread.c
-	$(CC) -o $(DEMO)-basic mypthread.o $(DEMO).o
+	$(CC) $(CFLAGS) $(DEMO).c mypthread.c -o $(DEMO)-basic
 
 system: $(DEMO).c
 	$(CC) $(CFLAGS) $(DEMO).c -o $(DEMO)-system -pthread -include mypthread-system-override.h

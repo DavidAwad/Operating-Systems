@@ -21,22 +21,24 @@ int mypthread_create_(mypthread_t *thread, const mypthread_attr_t *attr,
 //	printf("mypthread_create called from %s\n", location);
 
 	if(countThreads == THREAD_COUNT-1) {
-		panic("Too many threads");
+		fprintf(stderr,"Too many threads\n");
+		return -1;
 	}
 
 	mypthread_real *ret;
-	//Equiv: mypthread_t ret;
 
-	//Find UNUSED thread
 	ret = getUnusedThread();
 	if(ret == NULL) {
-		panic("Couldn't find UNUSED thread");
+		//This shouldn't ever be reached because of the check above
+		fprintf(stderr, "Couldn't find UNUSED thread\n");
+		return -1;
 	}
 
 	countThreads++;
 
 	if(getcontext(&(ret->ctx)) != 0) {
-		panic("Unable to get context");
+		fprintf(stderr, "Unable to get context\n");
+		return -1;
 	}
 	ret->ctx.uc_stack.ss_sp = ret->stk;
 	ret->ctx.uc_stack.ss_size = STACK_SIZE;
@@ -74,7 +76,7 @@ void mypthread_exit_(void *retval, char *location) {
 
 	if(!currThread) {
 		//User calls exit before join or yield, but after create
-		printf("Need to make this edge case");
+		printf("Need to make this edge case\n");
 	}
 
 	currThread->status = UNUSED;
@@ -150,17 +152,18 @@ int mypthread_join_(mypthread_t thread, void **retval, char *location) {
 
 	if(thread == 0) {
 		//Error, either by user or yield getPausedThread() failed
-		panic("Something bad happened");
+		fprintf(stderr, "Something bad happened");
+		return -1;
 	}
 
 	if(thread->status == UNUSED) {
-		panic("Recived uninitialized thread");
+		fprintf(stderr, "Recived uninitialized thread");
+		return -1;
 	}
 
 	if(currThread == NULL) {
 		//Should only happen on very first attempted join/ yield
 		//Means main thread needs to be set up
-		printf("from main\n");
 		mypthread_real *mainThread = getUnusedThread();
 		mainThread->status = WAITING;
 		thread->parent = mainThread;

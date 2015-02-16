@@ -4,7 +4,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 
-/* Debugging defines */
+// Debugging defines -- see mypthread.h lines 41-46
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 #define AT __FILE__ ":" TOSTRING(__LINE__)
