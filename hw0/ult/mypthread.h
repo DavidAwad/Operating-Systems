@@ -14,7 +14,8 @@
 typedef enum {
 	UNUSED,
 	ACTIVE,
-	PAUSED
+	PAUSED,
+	WAITING
 } mypthread_status;
 
 // Types
@@ -22,12 +23,15 @@ typedef struct {
 	// Define any fields you might need inside here.
 } mypthread_attr_t;
 
-typedef struct {
+struct mypthread_struct{
 	mypthread_status status;
 	mypthread_attr_t attr;
 	ucontext_t ctx;
 	char stk[STACK_SIZE];
-} mypthread_real;
+	struct mypthread_struct *parent;
+};
+
+typedef struct mypthread_struct mypthread_real;
 
 typedef mypthread_real* mypthread_t;
 

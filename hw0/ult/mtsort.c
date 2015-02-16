@@ -155,8 +155,8 @@ int main( int argc, char **argv )
 
     pList = (int *) malloc( sizeof( int ) * nListSize );
     for( i = 0; i < nListSize; i++ )
-//        pList[i] = random( ) % (nListSize<<1);   // random list
-        pList[i] = nListSize-i;   // decreasing list  (easier to debug)
+        pList[i] = random( ) % (nListSize<<1);   // random list
+//        pList[i] = nListSize-i;   // decreasing list  (easier to debug)
 
     printf( "[BEFORE] The list is NOT sorted:\n" );
     printList( pList, nListSize );

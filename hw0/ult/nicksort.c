@@ -74,11 +74,10 @@ void * fncheck( void *arg )
 
     while( !quitting )
     {
-        printf(".\n");
+        //printf(".");
         if( (j+1) % 80 == 0 )
             printf( "\n" );
 
-        //lock all threads
         for( i = 0; i < size-1 && check; i++ )
         {
             if( pargs->num[i] > pargs->num[i+1] )
@@ -88,7 +87,6 @@ void * fncheck( void *arg )
         if( check ) {
             printf("\nQuitting...\n");
         	quitting = check;
-			break;
 		}
         mypthread_yield( );
     }
@@ -126,7 +124,7 @@ int main( int argc, char **argv )
 
     pList = (int *) malloc( sizeof( int ) * nListSize );
     for( i = 0; i < nListSize; i++ )
-        pList[i] = random( ) % (nListSize<<1);   // random list
+        pList[i] = random( ) % (nListSize<<2);   // random list
 
     printf( "[BEFORE] The list is NOT sorted:\n" );
     printList( pList, nListSize );
@@ -162,6 +160,8 @@ int main( int argc, char **argv )
     for( i = 0; i < nListSize-1; i++ )
         mypthread_join( threads[i], 0 );
     mypthread_join( thrcheck, 0 );
+
+	mypthread_yield();
 
     printf( "[AFTER] The list is sorted:\n" );
     printList( pList, nListSize );

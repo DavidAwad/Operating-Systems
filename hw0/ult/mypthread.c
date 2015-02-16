@@ -10,6 +10,12 @@ static int countThreads = 1;
 mypthread_real *getPausedThread();
 mypthread_real *getUnusedThread();
 
+struct pthrarg
+{
+    int *num;
+    int size;
+};
+
 int mypthread_create_(mypthread_t *thread, const mypthread_attr_t *attr,
 			void *(*start_routine) (void *), void *arg, char *location) {
 //	printf("mypthread_create called from %s\n", location);
@@ -36,6 +42,9 @@ int mypthread_create_(mypthread_t *thread, const mypthread_attr_t *attr,
 	ret->ctx.uc_stack.ss_size = STACK_SIZE;
 	//ret->ctx.ul_link = ;
 	
+	struct pthrarg *temp;	
+	temp = (struct pthrarg *) arg;
+
 	makecontext(&(ret->ctx), (void (*)(void))start_routine, 1, arg);
 
 	ret->status = PAUSED;
@@ -75,6 +84,10 @@ void mypthread_exit_(void *retval, char *location) {
 		exit(0);
 	}
 
+	if(currThread->parent) {
+		setcontext(&(currThread->parent->ctx));
+	}
+
 	currThread = getPausedThread();
 	if(!currThread) {
 		panic("Unable to find paused thread!");
@@ -88,8 +101,48 @@ void mypthread_exit_(void *retval, char *location) {
 }
 
 int mypthread_yield_(char *location) {
-//	printf("mypthread_yield called from %s\n", location);
-	return mypthread_join(getPausedThread(), NULL);
+	//For debugging purposes
+	//printf("mypthread_yield called from %s\n", location);
+	
+	mypthread_real *thread =getPausedThread();
+	if(thread == 0) {
+		//Error, either by user or yield getPausedThread() failed
+		fprintf(stderr, "Something bad happened");
+	}
+
+	if(currThread == NULL) {
+		//Should only happen on very first attempted join/ yield
+		//Means main thread needs to be set up
+		mypthread_real *mainThread = getUnusedThread();
+		mainThread->status = PAUSED;
+
+		thread->status = ACTIVE;
+		currThread = thread;
+
+		if(swapcontext(&(mainThread->ctx), &(currThread->ctx)) == -1 ) {
+			fprintf(stderr, "SwapContext failed\n");
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	mypthread_real *oldThread = currThread;
+
+	oldThread->status = PAUSED;
+	thread->status = ACTIVE;
+
+	currThread = thread;
+
+	if(setcontext(&(currThread->ctx)) == -1) {
+		//panic!
+		fprintf(stderr, "Unable to set context!\n");
+		return -1;
+	}
+
+	return 0;
+	
 }
 
 int mypthread_join_(mypthread_t thread, void **retval, char *location) {
@@ -109,8 +162,8 @@ int mypthread_join_(mypthread_t thread, void **retval, char *location) {
 		//Means main thread needs to be set up
 		printf("from main\n");
 		mypthread_real *mainThread = getUnusedThread();
-		mainThread->status = PAUSED;
-
+		mainThread->status = WAITING;
+		thread->parent = mainThread;
 		thread->status = ACTIVE;
 		currThread = thread;
 
@@ -118,14 +171,13 @@ int mypthread_join_(mypthread_t thread, void **retval, char *location) {
 			fprintf(stderr, "SwapContext failed\n");
 			return -1;
 		}
-
 		return 0;
 	}
 
-
 	mypthread_real *oldThread = currThread;
 
-	oldThread->status = PAUSED;
+	oldThread->status = WAITING;
+	thread->parent = currThread;
 	thread->status = ACTIVE;
 
 	currThread = thread;
@@ -157,7 +209,7 @@ mypthread_real *getPausedThread() {
 
 	int threadOffset;
 	threadOffset = (currThread == 0) ? 0 : currThread-threadPool;
-	//printf("%d\n", threadOffset);
+	//printf("t%d\t", threadOffset);
 
 	int i=0;
 	mypthread_real *currThread = threadPool;
