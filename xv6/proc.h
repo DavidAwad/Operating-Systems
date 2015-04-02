@@ -1,5 +1,22 @@
 // Segments in proc->gdt.
 #define NSEGS     7
+// SYSYSYSYSYSYS
+#define SEM_VALUE_MAX 31
+
+struct waitqueue {
+	int value;
+	struct waitqueue *next;
+	//TODO: finish later
+}
+
+struct semaphore {
+	int value;
+	int active;
+	struct spinlock lock;
+	struct waitqueue *wait;
+};
+
+struct semaphore semtable[SEM_VALUE_MAX+1];
 
 // Per-CPU state
 struct cpu {
@@ -66,9 +83,6 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int *restorer;			   // Janky special case signal handler
-  int *signal_handler_addr[32];// Signal handler addresses for each signal defined in signal.h respectively
- // int *signal_handler_signum_addr[32]; //signal handler address for the signal which caused the signal
 };
 
 // Process memory is laid out contiguously, low addresses first:

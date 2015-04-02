@@ -12,6 +12,7 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -165,6 +166,14 @@ fork(void)
   
   return pid;
 }
+
+struct semaphore{
+	int value;
+	int active;
+	struct spinlock lock;
+};
+
+struct semaphore semtable[32];
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state

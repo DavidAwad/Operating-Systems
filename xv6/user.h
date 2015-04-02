@@ -24,7 +24,12 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int halt(void);
-int signal(int, void (*sighandler_t)(int));
+
+// semaphores
+int sem_init(int sem, int value);
+int sem_destroy(int sem);
+int sem_wait(int sem, int count);
+int sem_signal(int sem, int count);
 
 // ulib.c
 int stat(char*, struct stat*);

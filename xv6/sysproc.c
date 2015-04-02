@@ -6,7 +6,6 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-#include "signal.h"
 
 int
 sys_fork(void)
@@ -104,26 +103,113 @@ sys_halt(void)
   return 0;
 }
 
+
+// Semaphores
+
+//TODO: Make thread safe!
 int
-sys_signal(void)
+sys_sem_init(void)
 {
-  int signum;
-  int handler_addr;
-  signum = -2;
-  handler_addr = 0;
+	int sem, value;
 
-  if(argint(0,&signum) < -1) {
-	  return -1;
-  }
-  if(argint(1, &handler_addr) < 0) {
-	  return -1;
-  }
-  //cprintf("inside sysproc.c -> signum = %d handler_addr = %x\n", signum, handler_addr);
+	if(argint(0,&sem) < -1)
+		return -1;
 
-  if(signum == -1) {
-	  proc->restorer = (int *) handler_addr;
-  } else {
-	  proc->signal_handler_addr[signum] = (int *)handler_addr;
-  }
-  return 0;
+	if(argint(1,&value) < -1)
+		return -1;
+
+	if(value < 1)
+		return -1;
+
+	if(sem > SEM_VALUE_MAX)
+		return -1;
+
+	if(semtable[sem].active)
+		return -1;
+
+	semtable[sem].active = 1;
+	semtable[sem].value = value;
+	//TODO: finish this next line
+	//semtable[sem].spinlock = ??
+
+
+	return 0;
+}
+
+int
+sys_sem_destroy(void)
+{
+	int sem;
+
+	if(argint(0,&sem) < -1)
+		return -1;
+
+	//Not checking if it wasn't active already
+	semtable[sem].active = 0;
+
+	return 0;
+}
+
+int
+sys_sem_wait(void)
+{
+	int sem, count;
+
+	//check for errors
+	if(argint(0,&sem) < -1)
+		return -1;
+	
+	if(argint(0,&count) < -1)
+		return -1;
+
+	if(count < 1)
+		return -1;
+
+	if(sem > SEM_VALUE_MAX)
+		return -1;
+
+	if(semtable[sem].active)
+		return -1;
+	//end of error checks
+
+	if(semtable[sem].value >= count) {
+		semtable[sem].value -= count;
+	} else {
+		enqueue(semtable[sem], value); //TODO Define this method elsewhere
+		//TODO spinlock
+	}
+
+	return 0;
+}
+
+int
+sys_sem_signal(void)
+{
+	int sem, count;
+
+	//check for errors
+	if(argint(0,&sem) < -1)
+		return -1;
+	
+	if(argint(0,&count) < -1)
+		return -1;
+
+	if(count < 1)
+		return -1;
+
+	if(sem > SEM_VALUE_MAX)
+		return -1;
+
+	if(semtable[sem].active)
+		return -1;
+	//end of error checks
+
+	semtable[sem].value += count;
+
+	if(!semtable[sem].wait) { //TODO check if queue is not empty
+		//TODO remove processes from queue
+		//TODO place this process on `waiting list`
+	}
+
+	return 0;
 }
