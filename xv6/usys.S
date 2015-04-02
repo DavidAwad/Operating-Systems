@@ -31,7 +31,6 @@ SYSCALL(sleep)
 SYSCALL(uptime)
 SYSCALL(halt)
 
-;semaphores
 SYSCALL(sem_init)
 SYSCALL(sem_destroy)
 SYSCALL(sem_wait)

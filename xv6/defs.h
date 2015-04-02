@@ -119,6 +119,9 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 
+//semaphores, move to sem.c later
+void			seminit(void);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 

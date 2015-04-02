@@ -110,6 +110,7 @@ sys_halt(void)
 int
 sys_sem_init(void)
 {
+	/*
 	int sem, value;
 
 	if(argint(0,&sem) < -1)
@@ -132,13 +133,14 @@ sys_sem_init(void)
 	//TODO: finish this next line
 	//semtable[sem].spinlock = ??
 
-
+*/
 	return 0;
 }
 
 int
 sys_sem_destroy(void)
 {
+	/*
 	int sem;
 
 	if(argint(0,&sem) < -1)
@@ -146,13 +148,14 @@ sys_sem_destroy(void)
 
 	//Not checking if it wasn't active already
 	semtable[sem].active = 0;
-
+*/
 	return 0;
 }
 
 int
 sys_sem_wait(void)
 {
+	/*
 	int sem, count;
 
 	//check for errors
@@ -178,13 +181,14 @@ sys_sem_wait(void)
 		enqueue(semtable[sem], value); //TODO Define this method elsewhere
 		//TODO spinlock
 	}
-
+*/
 	return 0;
 }
 
 int
 sys_sem_signal(void)
 {
+	/*
 	int sem, count;
 
 	//check for errors
@@ -210,6 +214,6 @@ sys_sem_signal(void)
 		//TODO remove processes from queue
 		//TODO place this process on `waiting list`
 	}
-
+*/
 	return 0;
 }

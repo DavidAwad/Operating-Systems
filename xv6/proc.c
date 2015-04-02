@@ -12,6 +12,20 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+struct waitlist {
+	int value;
+	//int pid; //TODO fix this
+};
+
+
+struct semaphore {
+	int value;
+	int active;
+	struct spinlock lock;
+	struct waitlist wait[SEM_WAITLIST_MAX+1];
+};
+
+struct semaphore semtable[SEM_VALUE_MAX+1];
 
 static struct proc *initproc;
 
@@ -20,6 +34,16 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+
+void
+seminit(void)
+{
+  int i;
+  for(i=0; i<SEM_VALUE_MAX; i++) {
+    initlock(&semtable[i].lock, "semtable");
+  }
+
+}
 
 void
 pinit(void)
@@ -166,14 +190,6 @@ fork(void)
   
   return pid;
 }
-
-struct semaphore{
-	int value;
-	int active;
-	struct spinlock lock;
-};
-
-struct semaphore semtable[32];
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state

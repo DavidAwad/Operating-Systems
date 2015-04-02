@@ -2,21 +2,9 @@
 #define NSEGS     7
 // SYSYSYSYSYSYS
 #define SEM_VALUE_MAX 31
+#define SEM_WAITLIST_MAX 63
 
-struct waitqueue {
-	int value;
-	struct waitqueue *next;
-	//TODO: finish later
-}
 
-struct semaphore {
-	int value;
-	int active;
-	struct spinlock lock;
-	struct waitqueue *wait;
-};
-
-struct semaphore semtable[SEM_VALUE_MAX+1];
 
 // Per-CPU state
 struct cpu {
