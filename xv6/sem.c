@@ -17,6 +17,7 @@ int sem_enqueue(int sem, int count){
 		if(semtable[sem].waitlist.value[i]==0) {
 			semtable[sem].waitlist.value[i] = count;
 			semtable[sem].waitlist.pid[i] = 0; //TODO write this line
+			semtable[sem].waitlist.waiting_count++;
 			break;
 		}
 	}
