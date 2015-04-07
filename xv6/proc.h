@@ -1,10 +1,37 @@
 // Segments in proc->gdt.
 #define NSEGS     7
 // SYSYSYSYSYSYS
-#define SEM_VALUE_MAX 31
-#define SEM_WAITLIST_MAX 63
+#define SEM_VALUE_MAX 32
+#define SEM_WAITLIST_MAX 64
 
+#ifndef SEM_INITIALIZED
+#define SEM_INITIALIZED
 
+//Semaphore struct
+//Waitlist is implemented as a circular vector instead of linked list
+//Pros:
+//-No dynamic memory allocation
+//-Better cache performance (probably)
+//Cons:
+//-Larger structures (at start)
+//-Limited amount of threads waiting on a sem (defined as SEM_WAITLIST_MAX)
+struct semaphore {
+	int value;
+	int active;
+	struct spinlock lock;
+	struct {
+		int waiting_count;
+		int oldest;
+		//Note: SOA style used because it might help the cache 
+		//But really idk
+		int value[SEM_WAITLIST_MAX];
+		int pid[SEM_WAITLIST_MAX];
+	}waitlist;
+};
+
+struct semaphore semtable[SEM_VALUE_MAX];
+
+#endif
 
 // Per-CPU state
 struct cpu {
