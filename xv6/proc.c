@@ -471,21 +471,36 @@ int clone(void){
 	// Allocate process.
 	if((np = allocproc()) == 0){
 		return -1; 
+		// process has failed
 	}
 
-	// Copy process state from p.
+	/* Copy process state from p allocating new memory fro new process
 	if( (np->pgdir = copyuvm(proc->pgdir, proc->sz) ) == 0){
 		kfree(np->kstack);
 		np->kstack = 0;
 		np->state = UNUSED;
 		return -1;
-	}
+	} 
+	*/
+	np->pgdir = proc->pgdir ;
+	// point new process address to same address in the page table
 	np->sz = proc->sz;
 	np->parent = proc;
 	*np->tf = *proc->tf;
 	
 	// Clear %eax so that fork returns 0 in the child.
-	np->tf->eax = 0;
+	//np->tf->eax = 0;
+
+	/* 
+	allocate new stack for new process 
+	set esp to top of the stack
+	add tpo esp 4096 - 4. Now esp is pointing to the top of the stack
+	at top of the stack insert arguments
+	at esp - 4 store the return address
+	set esp = esp-4 (address of the return address)
+	allocate eip to the function pointer to this system call
+	set isThread flag  in proc struct 
+	*/
 
 	for(i = 0; i < NOFILE; i++){
 		if(proc->ofile[i]){
