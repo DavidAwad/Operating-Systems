@@ -7,6 +7,7 @@
 #ifndef SEM_INITIALIZED
 #define SEM_INITIALIZED
 
+#include "spinlock.h"
 //Semaphore struct
 //Waitlist is implemented as a circular vector instead of linked list
 //Pros:

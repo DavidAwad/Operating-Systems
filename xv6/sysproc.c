@@ -178,7 +178,7 @@ sys_sem_wait(void)
 	if(semtable[sem].value >= count) {
 		semtable[sem].value -= count;
 	} else {
-		return sem_enqueue(sem, count); //TODO Define this method elsewhere
+		return sem_enqueue(sem, count);
 		//TODO spinlock
 	}
 
@@ -210,8 +210,11 @@ sys_sem_signal(void)
 
 	semtable[sem].value += count;
 
-	if(!semtable[sem].wait) { //TODO check if queue is not empty
-		//TODO remove processes from queue
+	if(!semtable[sem].waitlist.waiting_count) { //TODO check if queue is not empty
+		int removed_pid = sem_dequeue(sem);
+		if(removed_pid == -1) {
+			return -1;
+		}
 		//TODO place this process on `waiting list`
 	}
 

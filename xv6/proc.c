@@ -13,28 +13,6 @@ struct {
 } ptable;
 
 
-//Semaphore struct
-//Waitlist is implemented as a circular vector instead of linked list
-//Pros:
-//-No dynamic memory allocation
-//-Better cache performance (probably)
-//Cons:
-//-Larger structures (at start)
-//-Limited amount of threads waiting on a sem (defined as SEM_WAITLIST_MAX)
-struct semaphore {
-	int value;
-	int active;
-	struct spinlock lock;
-	struct {
-		int waiting_count;
-		int oldest;
-		int value[SEM_WAITLIST_MAX];
-		int pid[SEM_WAITLIST_MAX];
-	}waitlist;
-};
-
-struct semaphore semtable[SEM_VALUE_MAX];
-
 static struct proc *initproc;
 
 int nextpid = 1;
