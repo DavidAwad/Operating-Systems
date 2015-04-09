@@ -127,3 +127,16 @@ sys_signal(void)
   }
   return 0;
 }
+
+int
+sys_clone(void)
+{
+	return clone();
+}
+
+int
+sys_join(void)
+{
+	join();
+	return 0;
+}
