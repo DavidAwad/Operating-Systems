@@ -464,7 +464,7 @@ procdump(void)
   }
 }
 
-int clone(void){
+int clone( void *stack, function pointers and shit ){
 	int i, pid;
 	// new process
 	struct proc *np;
@@ -482,15 +482,6 @@ int clone(void){
 		return -1;
 	} 
 	*/
-	np->pgdir = proc->pgdir ;
-	// point new process address to same address in the page table
-	np->sz = proc->sz;
-	np->parent = proc;
-	*np->tf = *proc->tf;
-	
-	// Clear %eax so that fork returns 0 in the child.
-	//np->tf->eax = 0;
-
 	/* 
 	allocate new stack for new process 
 	set esp to top of the stack
@@ -500,7 +491,23 @@ int clone(void){
 	set esp = esp-4 (address of the return address)
 	allocate eip to the function pointer to this system call
 	set isThread flag  in proc struct 
+	  do we set state? 
 	*/
+
+
+
+	np->pgdir = proc->pgdir ;
+	// point new process address to same address in the page table
+	np -> stack = stack ; 
+	// set new stack 
+	np->sz = proc->sz;
+	np->parent = proc;
+	*np->tf = *proc->tf;
+	
+	// Clear %eax so that fork returns 0 in the child.
+	//np->tf->eax = 0;
+
+
 
 	for(i = 0; i < NOFILE; i++){
 		if(proc->ofile[i]){
@@ -521,10 +528,16 @@ int clone(void){
 	return pid;
 }
 
-int join(void){
+int join(void **stack){
 	struct proc *p;
 	int havekids, pid;
 	acquire(&ptable.lock);
+	/* handler should be in exit and kill 
+	if(p -> isThread){ // is thread
+		np->
+	}
+	*/
+	
 	for(;;){
 		// Scan through table looking for zombie children.
 		havekids = 0;
@@ -538,7 +551,7 @@ int join(void){
 				pid = p->pid;
 				kfree(p->kstack);
 				p->kstack = 0;
-				freevm(p->pgdir);
+				//freevm(p->pgdir);
 				p->state = UNUSED;
 				p->pid = 0;
 				p->parent = 0;
@@ -556,5 +569,6 @@ int join(void){
 		// Wait for children to exit. (See wakeup1 call in proc_exit.)
 		sleep(proc, &ptable.lock); //DOC: wait-sleep
 	}
+	
 
 }
