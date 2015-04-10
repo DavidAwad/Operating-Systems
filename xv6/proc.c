@@ -175,9 +175,34 @@ exit(void)
   struct proc *p;
   int fd;
 
-  if(proc == initproc)
+  if(proc == initproc){
     panic("init exiting");
-
+  }
+  
+  /* Handler for a thread-process */
+  if(p->isThread == 1){
+      /* acquire the process table */ 
+      acquire(&ptable.lock);
+      for(;;){
+        // Scan through table looking for thread children.
+        havekids = 0;
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+          if(p->parent != proc){
+            continue;
+          }
+          /* found a child thread */
+          havekids ++;
+          /* exit any and all child threads */
+          p->state = UNUSED;
+          kfree(p->kstack);  
+          
+        }
+    } 
+    /* done exiting children, release table */
+    release(&ptable.lock);    
+  }
+  /* END OF KERNEL THREAD HANDLER */
+  
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(proc->ofile[fd]){
@@ -195,14 +220,6 @@ exit(void)
 
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
-
-	// handler should be in exit and kill 
-	if(p->isThread == 1){ // is thread
-		np->
-	}
-	
-
-
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -420,6 +437,27 @@ kill(int pid)
 {
   struct proc *p;
 
+  /* Handler for a thread-process */
+  if(p->isThread == 1){
+      /* acquire the process table */ 
+      acquire(&ptable.lock);
+      for(;;){
+        // Scan through table looking for thread children.
+        havekids = 0;
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+          if(p->parent != proc){
+            continue;
+          }
+          /* found a child thread */
+          p->killed = 1;
+        }
+    } 
+    /* done killing children, release table */
+    release(&ptable.lock);    
+  }
+  /* END OF KERNEL THREAD HANDLER */
+  
+  
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
@@ -479,16 +517,28 @@ int clone( void (*func)(void *), void *arg, void *stack ){
 	// Attempt to allocate memory for process.
 	if((np = allocproc()) == 0){
 		// process has failed
-		return -1; 
+		return -1;
 	}
-	// create new stack
-	char *newStack[4096];
-	np->tf->esp += (4096 - 4); // subtract size of stack 
-	*(np->tf->esp) = &arg ;// push address of arg unto the stack 
-	np->tf->esp -= 4 ; // return address for function
-	np->tf->eip = func; // set instruction pointer to new function
+  
+  // point new process address to same address in the page table 
+  np->pgdir = proc->pgdir ;
+  np->sz = proc->sz;
+  np->parent = proc;
+  *np->tf = *proc->tf;
+  //this is done first to set up stack of np similar to parent thread
+  
+  np->tf->esp = ((uint)stack) + 4096 - 4; // move esp based on size of stack
+
+  // create a uint pointer for the address of the new argument
+  *(uint *)(np->tf->esp) = (uint)arg ;// push address of arg unto the stack 
+  *(uint *)(np->tf->esp-4) = (uint)0xFFFFFFF ;
+
+    
+  np->tf->esp -= 4 ; // return address for function
+	np->tf->eip = (uint)func; // set instruction pointer to new function
+  
 	np->isThread = 1; // mark process as a thread.
-	
+
 	/* 
 	allocate new stack for new process 
 	set esp to top of the stack
@@ -500,14 +550,9 @@ int clone( void (*func)(void *), void *arg, void *stack ){
 	set isThread flag in proc struct
 	do we set state? 
 	*/
-
-	np->pgdir = proc->pgdir ;
-	// point new process address to same address in the page table
 	np->ustack = stack; 
 	// set new stack
-	np->sz = proc->sz;
-	np->parent = proc;
-	*np->tf = *proc->tf;
+	
 
 	for(i = 0; i < NOFILE; i++){
 		if(proc->ofile[i]){
@@ -544,9 +589,14 @@ int join(void **stack){
 			if(p->state == ZOMBIE){
 				// Found one.
 				pid = p->pid;
+        
+        			// copy the address of the user stack
+        			*stack = p->ustack ;
+        
 				kfree(p->kstack);
 				p->kstack = 0;
-				//freevm(p->pgdir); no need to free page directory
+				//freevm(p->pgdir); 
+        			// no need to free page directory as this is the page of the parent 
 				p->state = UNUSED;
 				p->pid = 0;
 				p->parent = 0;
@@ -564,8 +614,6 @@ int join(void **stack){
 		// Wait for children to exit. (See wakeup1 call in proc_exit.)
 		sleep(proc, &ptable.lock); //DOC: wait-sleep
 	}
-	/* copy the thread's stack into the Stack passed */
-	*stack = &(p->ustack); 
-   /* Clean the stack  */	
-	kfree(*stack);
+	
 }
+
