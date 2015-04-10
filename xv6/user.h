@@ -24,6 +24,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int halt(void);
+int clone(void);
+int join(void);
 
 // semaphores
 int sem_init(int sem, int value);

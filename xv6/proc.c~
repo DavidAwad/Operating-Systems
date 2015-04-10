@@ -173,34 +173,12 @@ fork(void)
 void
 exit(void)
 {
-  struct proc *p = ptable.proc;
+  struct proc *p;
   int fd;
 
-  if(proc == initproc){
+  if(proc == initproc)
     panic("init exiting");
-  }
-  
-  /* Handler for a thread-process */
-  if(p->isThread == 1){
-      /* acquire the process table */ 
-      acquire(&ptable.lock);
-      for(;;){
-        // Scan through table looking for thread children.
-        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-          if(p->parent != proc){
-            continue;
-          }
-          /* exit any and all child threads */
-          p->state = UNUSED;
-          kfree(p->kstack);  
-          
-        }
-    } 
-    /* done exiting children, release table */
-    release(&ptable.lock);    
-  }
-  /* END OF KERNEL THREAD HANDLER */
-  
+
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(proc->ofile[fd]){
@@ -233,7 +211,6 @@ exit(void)
   sched();
   panic("zombie exit");
 }
-
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
@@ -434,7 +411,7 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
-  struct proc *p = ptable.proc;
+  struct proc *p;
 
   /* Handler for a thread-process */
   if(p->isThread == 1){
@@ -442,6 +419,7 @@ kill(int pid)
       acquire(&ptable.lock);
       for(;;){
         // Scan through table looking for thread children.
+        havekids = 0;
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
           if(p->parent != proc){
             continue;

@@ -161,3 +161,33 @@ sys_sem_signal(void)
 
 	return sem_signal(sem, count);
 }
+
+int
+sys_clone(void)
+{
+	void *func;
+	void *arg;
+	void *stack;
+
+	if(argint(0,&func) < -1)
+		return -1;
+	if(argint(1,&arg) < -1)
+		return -1;
+	if(argint(2,&stack) < -1)
+		return -1;
+
+
+	return clone(func, arg, stack);
+}
+
+int
+sys_join(void)
+{
+	void **stack;
+
+	if(argint(0,&stack) < -1)
+		return -1;
+
+	join(stack);
+	return 0;
+}

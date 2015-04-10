@@ -35,3 +35,6 @@ SYSCALL(sem_init)
 SYSCALL(sem_destroy)
 SYSCALL(sem_wait)
 SYSCALL(sem_signal)
+
+SYSCALL(clone)
+SYSCALL(join)

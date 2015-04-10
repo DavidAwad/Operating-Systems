@@ -103,6 +103,8 @@ extern int sys_sem_init(void);
 extern int sys_sem_destroy(void);
 extern int sys_sem_wait(void);
 extern int sys_sem_signal(void);
+extern int sys_clone(void);
+extern int sys_join(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -131,6 +133,8 @@ static int (*syscalls[])(void) = {
 [SYS_sem_destroy]	sys_sem_destroy,
 [SYS_sem_wait]		sys_sem_wait,
 [SYS_sem_signal]	sys_sem_signal,
+[SYS_clone]			sys_clone,
+[SYS_join]			sys_join,
 };
 
 void

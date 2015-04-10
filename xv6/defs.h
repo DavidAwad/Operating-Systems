@@ -118,6 +118,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int				kill(int);
+int				join(void**);
 
 // sem.c
 void			seminit(void);  //For main, do not confuse with sem_init
