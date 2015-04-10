@@ -196,6 +196,14 @@ exit(void)
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
 
+	// handler should be in exit and kill 
+	if(p->isThread == 1){ // is thread
+		np->
+	}
+	
+
+
+
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == proc){
@@ -464,50 +472,42 @@ procdump(void)
   }
 }
 
-int clone( void *stack, function pointers and shit ){
+int clone( void (*func)(void *), void *arg, void *stack ){
 	int i, pid;
 	// new process
 	struct proc *np;
-	// Allocate process.
+	// Attempt to allocate memory for process.
 	if((np = allocproc()) == 0){
-		return -1; 
 		// process has failed
+		return -1; 
 	}
-
-	/* Copy process state from p allocating new memory fro new process
-	if( (np->pgdir = copyuvm(proc->pgdir, proc->sz) ) == 0){
-		kfree(np->kstack);
-		np->kstack = 0;
-		np->state = UNUSED;
-		return -1;
-	} 
-	*/
+	// create new stack
+	char *newStack[4096];
+	np->tf->esp += (4096 - 4); // subtract size of stack 
+	*(np->tf->esp) = &arg ;// push address of arg unto the stack 
+	np->tf->esp -= 4 ; // return address for function
+	np->tf->eip = func; // set instruction pointer to new function
+	np->isThread = 1; // mark process as a thread.
+	
 	/* 
 	allocate new stack for new process 
 	set esp to top of the stack
-	add tpo esp 4096 - 4. Now esp is pointing to the top of the stack
+	add to esp 4096 - 4. Now esp is pointing to the top of the stack
 	at top of the stack insert arguments
 	at esp - 4 store the return address
 	set esp = esp-4 (address of the return address)
-	allocate eip to the function pointer to this system call
-	set isThread flag  in proc struct 
-	  do we set state? 
+	set eip the function pointer to this system call
+	set isThread flag in proc struct
+	do we set state? 
 	*/
-
-
 
 	np->pgdir = proc->pgdir ;
 	// point new process address to same address in the page table
-	np -> stack = stack ; 
-	// set new stack 
+	np->ustack = stack; 
+	// set new stack
 	np->sz = proc->sz;
 	np->parent = proc;
 	*np->tf = *proc->tf;
-	
-	// Clear %eax so that fork returns 0 in the child.
-	//np->tf->eax = 0;
-
-
 
 	for(i = 0; i < NOFILE; i++){
 		if(proc->ofile[i]){
@@ -532,11 +532,6 @@ int join(void **stack){
 	struct proc *p;
 	int havekids, pid;
 	acquire(&ptable.lock);
-	/* handler should be in exit and kill 
-	if(p -> isThread){ // is thread
-		np->
-	}
-	*/
 	
 	for(;;){
 		// Scan through table looking for zombie children.
@@ -551,7 +546,7 @@ int join(void **stack){
 				pid = p->pid;
 				kfree(p->kstack);
 				p->kstack = 0;
-				//freevm(p->pgdir);
+				//freevm(p->pgdir); no need to free page directory
 				p->state = UNUSED;
 				p->pid = 0;
 				p->parent = 0;
@@ -569,6 +564,8 @@ int join(void **stack){
 		// Wait for children to exit. (See wakeup1 call in proc_exit.)
 		sleep(proc, &ptable.lock); //DOC: wait-sleep
 	}
-	
-
+	/* copy the thread's stack into the Stack passed */
+	*stack = &(p->ustack); 
+   /* Clean the stack  */	
+	kfree(*stack);
 }

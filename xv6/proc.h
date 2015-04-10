@@ -68,7 +68,10 @@ struct proc {
   char name[16];               // Process name (debugging)
   int *restorer;			   // Janky special case signal handler
   int *signal_handler_addr[32];// Signal handler addresses for each signal defined in signal.h respectively
+  int isThread;                // flag for if a process is a thread 
+  char *ustack;                // user level thread stack
  // int *signal_handler_signum_addr[32]; //signal handler address for the signal which caused the signal
+ 
 };
 
 // Process memory is laid out contiguously, low addresses first:
