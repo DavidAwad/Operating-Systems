@@ -28,12 +28,12 @@ main(void)
   consoleinit();   // I/O devices & their interrupts
   uartinit();      // serial port
   pinit();         // process table
-  seminit();		//semaphore table
   tvinit();        // trap vectors
   binit();         // buffer cache
   fileinit();      // file table
   iinit();         // inode cache
   ideinit();       // disk
+  seminit();		//semaphore table
   if(!ismp)
     timerinit();   // uniprocessor timer
   startothers();   // start other processors

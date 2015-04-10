@@ -6,7 +6,6 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-#include "sem.h"
 
 int
 sys_fork(void)
@@ -106,117 +105,59 @@ sys_halt(void)
 
 
 // Semaphores
-
-//TODO Make thread safe!
 int
 sys_sem_init(void)
 {
-	
 	int sem, value;
 
+	//get args, check errors
 	if(argint(0,&sem) < -1)
 		return -1;
 
 	if(argint(1,&value) < -1)
 		return -1;
 
-	if(value < 1)
-		return -1;
-
-	if(sem >= SEM_VALUE_MAX)
-		return -1;
-
-	if(semtable[sem].active)
-		return -1;
-
-	semtable[sem].active = 1;
-	semtable[sem].value = value;
-	//TODO finish this next line (if need be)
-	//semtable[sem].spinlock = ??
-
-
-	return 0;
+	return sem_init(sem, value);
 }
 
 int
 sys_sem_destroy(void)
 {
-	
 	int sem;
 
+	//get args, check errors
 	if(argint(0,&sem) < -1)
 		return -1;
 
-	//No point in checking if it wasn't active already
-	semtable[sem].active = 0;
-
-	return 0;
+	return sem_destroy(sem);
 }
 
 int
 sys_sem_wait(void)
 {
 	int sem, count;
-
-	//check for errors
+	
+	//get args, check errors
 	if(argint(0,&sem) < -1)
 		return -1;
 	
-	if(argint(0,&count) < -1)
+	if(argint(1,&count) < -1)
 		return -1;
 
-	if(count < 1)
-		return -1;
-
-	if(sem >= SEM_VALUE_MAX)
-		return -1;
-
-	if(semtable[sem].active)
-		return -1;
-	//end of error checks
-
-	if(semtable[sem].value >= count) {
-		semtable[sem].value -= count;
-	} else {
-		return sem_enqueue(sem, count);
-		//TODO spinlock
-	}
-
-	return 0;
+	return sem_wait(sem, count);
 }
 
 int
 sys_sem_signal(void)
 {
-	
 	int sem, count;
 
-	//check for errors
+	//get args, check errors
 	if(argint(0,&sem) < -1)
 		return -1;
 	
-	if(argint(0,&count) < -1)
+	if(argint(1,&count) < -1)
 		return -1;
 
-	if(count < 1)
-		return -1;
-
-	if(sem >= SEM_VALUE_MAX)
-		return -1;
-
-	if(semtable[sem].active)
-		return -1;
-	//end of error checks
-
-	semtable[sem].value += count;
-
-	if(!semtable[sem].waitlist.waiting_count) { //TODO check if queue is not empty
-		int removed_pid = sem_dequeue(sem);
-		if(removed_pid == -1) {
-			return -1;
-		}
-		//TODO place this process on `waiting list`
-	}
-
-	return 0;
+	return sem_signal(sem, count);
 }

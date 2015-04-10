@@ -119,8 +119,12 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 
-//semaphores, move to sem.c later
-void			seminit(void);
+// sem.c
+void			seminit(void);  //For main, do not confuse with sem_init
+int				sem_init(int sem, int value);
+int				sem_destroy(int sem);
+int				sem_wait(int sem, int count);
+int				sem_signal(int sem, int count);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
