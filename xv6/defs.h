@@ -178,6 +178,8 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+int				mprotect(pde_t *pgdir, void *addr, int len, int prot);
+int				getflags(pde_t *pgdir, void *addr);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

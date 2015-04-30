@@ -45,7 +45,15 @@ trap(struct trapframe *tf)
       exit();
     return;
   }
-
+/*
+   if (tf->trapno == T_PGFLT) {
+      if (proc->handlers[SIGSEGV] != (sighandler_t) -1) {
+         siginfo_t temp = {0,0};
+         signal_deliver(SIGSEGV,temp);
+		 return;
+	  }
+   }
+*/
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
     if(cpu->id == 0){
@@ -77,30 +85,21 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
-  case T_DIVIDE:
-	;
-	/*Switch to handler code*/
-	/*save the old instruction pointer so we can return to user code after handling divide error*/
-	uint old_eip	= tf->eip +4;
-	uint old_esp	= tf->esp;
-	uint old_eax	= tf->eax;
-	uint old_edx	= tf->edx;
-	uint old_ecx	= tf->ecx;
 
-	uint restorer	= proc->restorer;
+  case T_GPFLT:
+  case T_PGFLT:
+    if(proc->handlers[SIGSEGV] != (sighandler_t) -1) {
+      signal_deliver(SIGSEGV, (siginfo_t){rcr2(), 0});
+      break;
+    }
+   
 
-	asm volatile ("movl %1, (%%eax)\t #Put addr of restorer on stack\n"
-				"movl $0, 4(%%eax)\t #Put 0=SIGFPE on stack\n"
-				"movl %2, 8(%%eax)\t #Put edx on stack\n"
-				"movl %3, 12(%%eax)\t #Put ecx on stack\n"
-				"movl %4, 16(%%eax)\t #Put eax on stack\n"
-				"movl %5, 20(%%eax)\t #Put old eip on stack\n"
-				"addl $24, %%eax\t #Expand stack \n"
-				:  : "r" (old_esp), "r" (restorer), "r" (old_edx), "r" (old_ecx), "r" (old_eax), "r" (old_eip));
+   case T_DIVIDE:
+      if (proc->handlers[SIGFPE] != (sighandler_t) -1) {
+        signal_deliver(SIGFPE, (siginfo_t){0,0});
+        break;
+      }
 
-	tf->eip = proc->signal_handler_addr[0];
-
-	break;
   //PAGEBREAK: 13
   default:
     if(proc == 0 || (tf->cs&3) == 0){

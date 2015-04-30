@@ -70,6 +70,10 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  p->handlers[SIGKILL] = (sighandler_t) -1;
+  p->handlers[SIGFPE] = (sighandler_t) -1;
+  p->restorer_addr = -1;
+
   return p;
 }
 
@@ -462,4 +466,35 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+void signal_deliver(int signum, siginfo_t info)
+{
+	uint old_eip = proc->tf->eip;
+
+	if(info.addr)
+		info.type = getflags(proc->pgdir, (void *)info.addr);
+
+	*((uint*)(proc->tf->esp - 4))  = (uint) old_eip;		// real return address
+	*((uint*)(proc->tf->esp - 8))  = proc->tf->eax;			// eax
+	*((uint*)(proc->tf->esp - 12)) = proc->tf->ecx;			// ecx
+	*((uint*)(proc->tf->esp - 16)) = proc->tf->edx;			// edx
+	*((uint*)(proc->tf->esp - 20)) = (uint) info.type;		// type of exception, second field of siginfo struct	
+	*((uint*)(proc->tf->esp - 24)) = (uint) info.addr;		// address of exception, first field of siginfo struct
+	*((uint*)(proc->tf->esp - 28)) = (uint) signum;			// signal number
+	*((uint*)(proc->tf->esp - 32)) = proc->restorer_addr;	// address of restorer
+	proc->tf->esp -= 32;
+	proc->tf->eip = (uint) proc->handlers[signum];
+}
+
+sighandler_t signal_register_handler(int signum, sighandler_t handler)
+{
+	if (!proc)
+		return (sighandler_t) -1;
+
+	sighandler_t previous = proc->handlers[signum];
+
+	proc->handlers[signum] = handler;
+
+	return previous;
 }

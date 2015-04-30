@@ -1,3 +1,5 @@
+#include "signal.h"
+
 // Segments in proc->gdt.
 #define NSEGS     7
 
@@ -66,9 +68,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int *restorer;			   // Janky special case signal handler
-  int *signal_handler_addr[32];// Signal handler addresses for each signal defined in signal.h respectively
- // int *signal_handler_signum_addr[32]; //signal handler address for the signal which caused the signal
+  sighandler_t handlers[2];    // Signal handlers
+  uint restorer_addr;          // Signal restorer
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -76,3 +77,6 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+void signal_deliver(int signum, siginfo_t info);
+sighandler_t signal_register_handler(int signum, sighandler_t handler);

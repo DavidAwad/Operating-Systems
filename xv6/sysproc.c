@@ -6,7 +6,6 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-#include "signal.h"
 
 int
 sys_fork(void)
@@ -104,26 +103,50 @@ sys_halt(void)
   return 0;
 }
 
-int
-sys_signal(void)
+int sys_signal_register(void)
 {
-  int signum;
-  int handler_addr;
-  signum = -2;
-  handler_addr = 0;
+    uint signum;
+    sighandler_t handler;
+    int n;
 
-  if(argint(0,&signum) < -1) {
-	  return -1;
-  }
-  if(argint(1, &handler_addr) < 0) {
-	  return -1;
-  }
-  //cprintf("inside sysproc.c -> signum = %d handler_addr = %x\n", signum, handler_addr);
+    if (argint(0, &n) < 0)
+      return -1;
+    signum = (uint) n;
 
-  if(signum == -1) {
-	  proc->restorer = (int *) handler_addr;
-  } else {
-	  proc->signal_handler_addr[signum] = (int *)handler_addr;
-  }
-  return 0;
+    if (argint(1, &n) < 0)
+      return -1;
+    handler = (sighandler_t) n;
+
+    return (int) signal_register_handler(signum, handler);
 }
+
+int sys_signal_restorer(void)
+{
+    int restorer_addr;
+    if (argint(0, &restorer_addr) < 0)
+      return -1;
+
+    proc->restorer_addr = (uint) restorer_addr;
+    
+    return 0;
+}
+
+int sys_mprotect(void)
+{
+	void *addr;
+	int temp, len, prot;
+
+	if (argint(0, &temp) < 0)
+		return -1;
+	addr = (void *)temp;
+
+	if (argint(1, &len) < 0)
+		return -1;
+
+	if (argint(2, &prot) < 0)
+		return -1;
+
+	return mprotect(proc->pgdir, addr, len, prot);
+}
+
+

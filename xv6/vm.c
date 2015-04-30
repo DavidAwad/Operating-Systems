@@ -377,6 +377,52 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
+int
+mprotect(pde_t *pgdir, void *addr, int len, int prot)
+{
+
+	pte_t *pte;
+
+	pte = walkpgdir(pgdir, addr, 0);
+
+	if(!pte)
+		return -1; //Addr not found in pgdir
+
+	switch (prot) {
+		case 0:
+			*pte = *pte&~(PTE_U|PTE_W);
+			break;
+		case 1:
+			*pte = *pte|PTE_U;
+			*pte = *pte&~(PTE_W);
+			break;
+		case 2:
+			*pte = *pte|PTE_W;
+			*pte = *pte&~(PTE_U);
+			break;
+		case 3:
+			*pte = *pte|PTE_U|PTE_W;
+			break;
+		default:
+			return -1;
+	}
+		
+
+
+	return 0;
+}
+
+int
+getflags(pde_t *pgdir, void *addr)
+{
+	pte_t *pte;
+	pte = walkpgdir(pgdir, addr, 0);
+	if(!pte)
+		return -1;	//Addr not found in pgdir
+
+	return ((*pte&PTE_W)?2:0) | ((*pte&PTE_U)?1:0);
+}
+
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
