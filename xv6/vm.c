@@ -8,6 +8,7 @@
 #include "elf.h"
 
 extern char data[];  // defined by kernel.ld
+ushort referenceTable[1048576];
 pde_t *kpgdir;  // for use in scheduler()
 struct segdesc gdt[NSEGS];
 
@@ -335,6 +336,61 @@ bad:
   freevm(d);
   return 0;
 }
+
+pde_t*
+cowcopyuvm(pde_t *pgdir, uint sz)
+{
+  pde_t *d;
+  pte_t *pte;
+  uint pa, i, flags;
+  char *mem;
+
+  if((d = setupkvm()) == 0)
+    return 0;
+  for(i = 0; i < sz; i += PGSIZE){
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if((mem = kalloc()) == 0)
+      goto bad;
+    memmove(mem, (char*)p2v(pa), PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, v2p(mem), flags) < 0)
+      goto bad;
+  }
+  return d;
+
+bad:
+  freevm(d);
+  return 0;
+}
+
+
+
+// Free a page table and all the physical memory pages
+// in the user part.
+void
+cowfreevm(pde_t *pgdir)
+{
+  uint i;
+
+  if(pgdir == 0)
+    panic("freevm: no pgdir");
+  deallocuvm(pgdir, KERNBASE, 0);
+  for(i = 0; i < NPDENTRIES; i++){
+    if(pgdir[i] & PTE_P){
+      char * v = p2v(PTE_ADDR(pgdir[i]));
+      kfree(v);
+    }
+  }
+  kfree((char*)pgdir);
+}
+
+
+
+
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.

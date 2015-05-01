@@ -170,6 +170,85 @@ fork(void)
   return pid;
 }
 
+
+// Creates a new process, not copying pages until needed
+int
+cowfork(void)
+{
+	int i, pid;
+	struct proc *np;
+
+	// Allocate process.
+	if((np = allocproc()) == 0)
+		return -1;
+
+  // let's mark the parent as readonly for the time being, when either one writes we will make our copy and malloc then
+  pde_t *d;
+  pte_t *pte;
+  uint pa, i, flags;
+  char *mem;
+
+  if((d = setupkvm()) == 0)
+    return 0;
+  for(i = 0; i < sz; i += PGSIZE){
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if((mem = kalloc()) == 0)
+      goto bad;
+	// mark all page entries as read only 
+	// 
+    if(mappages(d, (void*)i, PGSIZE, v2p(mem), flags) < 0)
+      goto bad;
+  }
+  return d;
+
+bad:
+  freevm(d);
+  return 0;
+
+
+
+
+if ((np->pgdir = cowcopyuvm(proc-> proc->sz)) == 0) {
+		// pgdir,copyuvm returned an error
+		kfree(np->kstack);
+		np->kstack = 0;
+		np->state = UNUSED;
+		return -1;
+	}
+
+// the below code is from fork 
+
+	np->sz = proc->sz;
+	np->parent = proc;
+	*np->tf = *proc->tf;
+
+	// Clear %eax so that fork returns 0 in the child.
+	np->tf->eax = 0;
+
+	for(i = 0; i < NOFILE; i++)
+		if(proc->ofile[i])
+			np->ofile[i] = filedup(proc->ofile[i]);
+	np->cwd = idup(proc->cwd);
+
+	safestrcpy(np->name, proc->name, sizeof(proc->name));
+
+	pid = np->pid;
+
+	// lock to force the compiler to emit the np->state write last.
+	acquire(&ptable.lock);
+	np->state = RUNNABLE;
+	release(&ptable.lock);
+  
+	return pid;
+}
+
+
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.

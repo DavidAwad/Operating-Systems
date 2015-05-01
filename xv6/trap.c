@@ -45,15 +45,6 @@ trap(struct trapframe *tf)
       exit();
     return;
   }
-/*
-   if (tf->trapno == T_PGFLT) {
-      if (proc->handlers[SIGSEGV] != (sighandler_t) -1) {
-         siginfo_t temp = {0,0};
-         signal_deliver(SIGSEGV,temp);
-		 return;
-	  }
-   }
-*/
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
     if(cpu->id == 0){
@@ -87,7 +78,7 @@ trap(struct trapframe *tf)
     break;
 
   case T_GPFLT:
-  case T_PGFLT:
+  case T_PGFLT: // case of a pagefault
     if(proc->handlers[SIGSEGV] != (sighandler_t) -1) {
       signal_deliver(SIGSEGV, (siginfo_t){rcr2(), 0});
       break;
