@@ -338,7 +338,7 @@ bad:
 }
 
 pde_t*
-cowcopyuvm(pde_t *pgdir, uint sz)
+markpgdirNoWrite(pde_t *pgdir, uint sz)
 {
   pde_t *d;
   pte_t *pte;
@@ -347,24 +347,21 @@ cowcopyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
+  //iterate through all page table entries in the given page directory
   for(i = 0; i < sz; i += PGSIZE){
+	// entry shouldn't exist, panic
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
+	// page not marked present
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto bad;
-    memmove(mem, (char*)p2v(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, v2p(mem), flags) < 0)
-      goto bad;
-  }
-  return d;
 
-bad:
-  freevm(d);
-  return 0;
+	referenceTable[ PDTX(pte) ]  ++ ; 
+	// mark no write
+	*pte = *pte&(~PTE_W);
+  }
+
+  return d;
 }
 
 
@@ -478,11 +475,4 @@ getflags(pde_t *pgdir, void *addr)
 
 	return ((*pte&PTE_W)?2:0) | ((*pte&PTE_U)?1:0);
 }
-
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
 

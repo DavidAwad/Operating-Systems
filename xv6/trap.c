@@ -79,17 +79,19 @@ trap(struct trapframe *tf)
 
   case T_GPFLT:
   case T_PGFLT: // case of a pagefault
-    if(proc->handlers[SIGSEGV] != (sighandler_t) -1) {
-      signal_deliver(SIGSEGV, (siginfo_t){rcr2(), 0});
-      break;
-    }
-   
-
+	if( !cowcheck( rcr2() ) ){
+		if(proc->handlers[SIGSEGV] != (sighandler_t) -1) {
+			signal_deliver(SIGSEGV, (siginfo_t){rcr2(), 0});
+			break;
+		} 
+	}
+	
    case T_DIVIDE:
       if (proc->handlers[SIGFPE] != (sighandler_t) -1) {
         signal_deliver(SIGFPE, (siginfo_t){0,0});
         break;
-      }
+      }	
+
 
   //PAGEBREAK: 13
   default:

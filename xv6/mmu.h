@@ -109,10 +109,13 @@ struct segdesc {
 //  \--- PDX(va) --/ \--- PTX(va) --/ 
 
 // page directory index
-#define PDX(va)         (((uint)(va) >> PDXSHIFT) & 0x3FF)
+#define PDX(va)         (((uint)(va) >> PDXSHIFT) & 0x000003FF)
 
 // page table index
-#define PTX(va)         (((uint)(va) >> PTXSHIFT) & 0x3FF)
+#define PTX(va)         (((uint)(va) >> PTXSHIFT) & 0x000003FF)
+
+// page directory and table indicies
+#define PDTX(va)		(((uint)(va) >> PTXSHIFT) & 0x000FFFFF)
 
 // construct virtual address from indexes and offset
 #define PGADDR(d, t, o) ((uint)((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
