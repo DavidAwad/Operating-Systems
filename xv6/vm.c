@@ -385,9 +385,45 @@ cowfreevm(pde_t *pgdir)
   kfree((char*)pgdir);
 }
 
+int cowcheck(){
+	// check if the address passed is marked by our array of uints
+	 if( referenceTable[ PDTX( rcr2() )]){
+	 	return 1; 
+	 }
+	 else{
+	 	return 0; 
+	 }
+}
 
 
+int createPageTableForProc(pde_t* pgdir){
+	uint addr = rcr2();
+	// we have the address where our fault occurred and we know it is in one of our cow pages
+	// find the relevant page directory, copy it's information into a new page table 
 
+	pde_t *d;
+	pte_t *pte, *new_pte ;
+	uint pa, i, flags;
+	char *mem;
+
+	d = PDX(addr);
+
+	if((pte = walkpgdir(d, addr , 0)) == 0)
+	  panic("copyuvm: pte should exist");
+	if(!(*pte & PTE_P))
+	  panic("copyuvm: page not present");
+
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if((mem = kalloc()) == 0)
+      return 0; // error happened
+    memmove(mem, (char*)p2v(pa), PGSIZE);
+    if(mappages(pgdir , (void*)i, PGSIZE, v2p(mem), flags) < 0)
+      kfree(mem); 
+
+	referenceTable[ PDTX(pte) ] -- ;
+
+}
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
