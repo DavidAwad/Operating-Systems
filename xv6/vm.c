@@ -73,7 +73,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
   char *a, *last;
   pte_t *pte;
-  
+
   a = (char*)PGROUNDDOWN((uint)va);
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
   for(;;){
@@ -179,6 +179,7 @@ switchuvm(struct proc *p)
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
+// run once, at the begining of operation
 void
 inituvm(pde_t *pgdir, char *init, uint sz)
 {
@@ -337,31 +338,44 @@ bad:
   return 0;
 }
 
+
 pde_t*
-markpgdirNoWrite(pde_t *pgdir, uint sz)
+cowsetup(pde_t *pgdir)
 {
   pde_t *d;
-  pte_t *pte;
-  uint pa, i, flags;
-  char *mem;
+  if((d = setupkvm())==0)
+	  return 0;
+  memmove(d+NELEM(kmap), pgdir+NELEM(kmap), PGSIZE-sizeof(kmap));
 
-  if((d = setupkvm()) == 0)
-    return 0;
+  return d;
+}
+
+// given a pgdir and its size, mark each page read only
+// doesn't return a value, but can panic
+void
+markpgdirNoWrite(pde_t *pgdir, uint sz)
+{
+  pte_t *pte;
+  uint i;
+
   //iterate through all page table entries in the given page directory
   for(i = 0; i < sz; i += PGSIZE){
 	// entry shouldn't exist, panic
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
-      panic("copyuvm: pte should exist");
+      panic("markpgdirNoWrite: pte should exist");
 	// page not marked present
     if(!(*pte & PTE_P))
-      panic("copyuvm: page not present");
+      panic("markpgdirNoWrite: page not present");
 
-	referenceTable[ PDTX(pte) ]  ++ ; 
+	
+	if(referenceTable[PDTX(pte)] == 0) {
+		referenceTable[PDTX(pte)] = 2; 
+	} else {
+		referenceTable[PDTX(pte)]++;
+	}
 	// mark no write
 	*pte = *pte&(~PTE_W);
   }
-
-  return d;
 }
 
 
@@ -385,45 +399,38 @@ cowfreevm(pde_t *pgdir)
   kfree((char*)pgdir);
 }
 
-int cowcheck(){
+int cowcheck(pde_t *pgdir){
 	// check if the address passed is marked by our array of uints
-	 if( referenceTable[ PDTX( rcr2() )]){
-	 	return 1; 
-	 }
-	 else{
-	 	return 0; 
-	 }
-}
-
-
-int createPageTableForProc(pde_t* pgdir){
-	uint addr = rcr2();
-	// we have the address where our fault occurred and we know it is in one of our cow pages
-	// find the relevant page directory, copy it's information into a new page table 
-
-	pde_t *d;
-	pte_t *pte, *new_pte ;
-	uint pa, i, flags;
+	
+	pde_t *d; 
+	pte_t *pte;
+	uint addr, pa;
 	char *mem;
 
-	d = PDX(addr);
+	addr = rcr2();
 
-	if((pte = walkpgdir(d, addr , 0)) == 0)
-	  panic("copyuvm: pte should exist");
+	if(!referenceTable[PDTX(addr)])
+	 	return 0; 
+
+	d = (pde_t *)PDX(addr);
+	if((pte = walkpgdir(d, (void *)addr, 0)) == 0)
+		panic("cowcheck: pte should exist?");
 	if(!(*pte & PTE_P))
-	  panic("copyuvm: page not present");
+		panic("cowcheck: page should be present?");
 
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      return 0; // error happened
-    memmove(mem, (char*)p2v(pa), PGSIZE);
-    if(mappages(pgdir , (void*)i, PGSIZE, v2p(mem), flags) < 0)
-      kfree(mem); 
+	pa = PTE_ADDR(*pte);
+	if((mem = kalloc()) == 0)
+		panic("cowcheck: no memory");
+	memmove(mem, (char *)p2v(pa), PGSIZE);
+	if(mappages(pgdir, (void *)addr, PGSIZE, v2p(mem), PTE_P|PTE_W|PTE_U) < 0)
+		panic("cowcheck: mappages failed");
 
-	referenceTable[ PDTX(pte) ] -- ;
+	referenceTable[PDTX(addr)]--;
+
+	return 1;
 
 }
+
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
@@ -470,33 +477,41 @@ int
 mprotect(pde_t *pgdir, void *addr, int len, int prot)
 {
 
+	char *a, *last;
 	pte_t *pte;
 
-	pte = walkpgdir(pgdir, addr, 0);
 
-	if(!pte)
-		return -1; //Addr not found in pgdir
+  	a = (char*)addr;
+  	last = (char*)(addr + len - 1);
+	for(;;){
+		pte = walkpgdir(pgdir, a, 0);
 
-	switch (prot) {
-		case 0:
-			*pte = *pte&~(PTE_U|PTE_W);
+		if(!pte)
+			return -1; //Addr not found in pgdir
+
+		switch (prot) {
+			case 0:
+				*pte = *pte&~(PTE_U|PTE_W);
+				break;
+			case 1:
+				*pte = *pte|PTE_U;
+				*pte = *pte&~(PTE_W);
+				break;
+			case 2:
+				*pte = *pte|PTE_W;
+				*pte = *pte&~(PTE_U);
+				break;
+			case 3:
+				*pte = *pte|PTE_U|PTE_W;
+				break;
+			default:
+				return -1;
+		}
+
+		if(a+PGSIZE>last)
 			break;
-		case 1:
-			*pte = *pte|PTE_U;
-			*pte = *pte&~(PTE_W);
-			break;
-		case 2:
-			*pte = *pte|PTE_W;
-			*pte = *pte&~(PTE_U);
-			break;
-		case 3:
-			*pte = *pte|PTE_U|PTE_W;
-			break;
-		default:
-			return -1;
+		a += PGSIZE;
 	}
-		
-
 
 	return 0;
 }

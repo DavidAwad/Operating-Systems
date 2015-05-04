@@ -78,12 +78,11 @@ trap(struct trapframe *tf)
     break;
 
   case T_GPFLT:
-  case T_PGFLT: // case of a pagefault
-	if( cowcheck() ){
+  case T_PGFLT: ;// case of a pagefault
+	if(!cowcheck(proc->pgdir)){
 		if(proc->handlers[SIGSEGV] != (sighandler_t) -1) {
-			//signal_deliver(SIGSEGV, (siginfo_t){rcr2(), 0});
-			//break;
-			createPageTableForProc(proc->pgdir); 
+			signal_deliver(SIGSEGV, (siginfo_t){rcr2(), 0});
+			break;
 		} 
 	}
 	

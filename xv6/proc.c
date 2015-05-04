@@ -182,9 +182,11 @@ cowfork(void)
 	if((np = allocproc()) == 0)
 		return -1;
 
-  // let's mark the parent as readonly for the time being, when either one writes we will make our copy and malloc then
+	// mark each page in parent's pgdir as read only
+	// set which are changed in global array
+	markpgdirNoWrite(proc->pgdir,  proc->sz);
 
-if ((np->pgdir = markpgdirNoWrite(proc->pgdir,  proc->sz)) == 0) {
+	if((np->pgdir = cowsetup(proc->pgdir)) == 0) {
 		// pgdir,copyuvm returned an error
 		kfree(np->kstack);
 		np->kstack = 0;
@@ -192,8 +194,7 @@ if ((np->pgdir = markpgdirNoWrite(proc->pgdir,  proc->sz)) == 0) {
 		return -1;
 	}
 
-
-// the below code is from fork 
+	// the below code is from fork 
 	np->sz = proc->sz;
 	np->parent = proc;
 	*np->tf = *proc->tf;

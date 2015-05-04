@@ -22,7 +22,7 @@ int main(void)
 {
 	signal(SIGSEGV, handler);
  	p = (int *) sbrk(1);
- 	mprotect((void *)p, sizeof(int), PROT_READ);
+ 	mprotect((void *)p, 4, PROT_READ);
  	*p=100;
  	printf(1, "COMPLETED: value is %d, expecting 100!\n", *p);
  	
