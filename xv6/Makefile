@@ -188,7 +188,6 @@ UPROGS=\
 	_stage1_test\
 	_stage2_timing\
 	_stage3_test\
-	_x\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

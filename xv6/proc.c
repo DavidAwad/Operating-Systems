@@ -175,6 +175,8 @@ exit(void)
   struct proc *p;
   int fd;
 
+  int havekids; 
+
   if(proc == initproc){
     panic("init exiting");
   }
@@ -439,6 +441,7 @@ kill(int pid)
 
   /* Handler for a thread-process */
   if(p->isThread == 1){
+  	int havekids; 
       /* acquire the process table */ 
       acquire(&ptable.lock);
       for(;;){
