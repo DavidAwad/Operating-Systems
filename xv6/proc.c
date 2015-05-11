@@ -55,11 +55,11 @@ found:
     return 0;
   }
   sp = p->kstack + KSTACKSIZE;
-  
+
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
-  
+
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
@@ -80,7 +80,7 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
-  
+
   p = allocproc();
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
@@ -108,7 +108,7 @@ int
 growproc(int n)
 {
   uint sz;
-  
+
   sz = proc->sz;
   if(n > 0){
     if((sz = allocuvm(proc->pgdir, sz, sz + n)) == 0)
@@ -155,14 +155,14 @@ fork(void)
   np->cwd = idup(proc->cwd);
 
   safestrcpy(np->name, proc->name, sizeof(proc->name));
- 
+
   pid = np->pid;
 
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   release(&ptable.lock);
-  
+
   return pid;
 }
 
@@ -175,15 +175,15 @@ exit(void)
   struct proc *p;
   int fd;
 
-  int havekids; 
+  int havekids;
 
   if(proc == initproc){
     panic("init exiting");
   }
-  
+  /* added by david awad and nick girardo */ 
   /* Handler for a thread-process */
   if(p->isThread == 1){
-      /* acquire the process table */ 
+      /* acquire the process table */
       acquire(&ptable.lock);
       for(;;){
         // Scan through table looking for thread children.
@@ -196,15 +196,15 @@ exit(void)
           havekids ++;
           /* exit any and all child threads */
           p->state = UNUSED;
-          kfree(p->kstack);  
-          
+          kfree(p->kstack);
+
         }
-    } 
+    }
     /* done exiting children, release table */
-    release(&ptable.lock);    
+    release(&ptable.lock);
   }
   /* END OF KERNEL THREAD HANDLER */
-  
+
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(proc->ofile[fd]){
@@ -363,12 +363,12 @@ forkret(void)
 
   if (first) {
     // Some initialization functions must be run in the context
-    // of a regular process (e.g., they call sleep), and thus cannot 
+    // of a regular process (e.g., they call sleep), and thus cannot
     // be run from main().
     first = 0;
     initlog();
   }
-  
+
   // Return to "caller", actually trapret (see allocproc).
 }
 
@@ -441,8 +441,8 @@ kill(int pid)
 
   /* Handler for a thread-process */
   if(p->isThread == 1){
-  	int havekids; 
-      /* acquire the process table */ 
+  	int havekids;
+      /* acquire the process table */
       acquire(&ptable.lock);
       for(;;){
         // Scan through table looking for thread children.
@@ -454,13 +454,13 @@ kill(int pid)
           /* found a child thread */
           p->killed = 1;
         }
-    } 
+    }
     /* done killing children, release table */
-    release(&ptable.lock);    
+    release(&ptable.lock);
   }
   /* END OF KERNEL THREAD HANDLER */
-  
-  
+
+
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
@@ -495,7 +495,7 @@ procdump(void)
   struct proc *p;
   char *state;
   uint pc[10];
-  
+
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
@@ -522,28 +522,28 @@ int clone( void (*func)(void *), void *arg, void *stack ){
 		// process has failed
 		return -1;
 	}
-  
-  // point new process address to same address in the page table 
+
+  // point new process address to same address in the page table
   np->pgdir = proc->pgdir ;
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
   //this is done first to set up stack of np similar to parent thread
-  
+
   np->tf->esp = ((uint)stack) + 4096 - 4; // move esp based on size of stack
 
   // create a uint pointer for the address of the new argument
-  *(uint *)(np->tf->esp) = (uint)arg ;// push address of arg unto the stack 
+  *(uint *)(np->tf->esp) = (uint)arg ;// push address of arg unto the stack
   *(uint *)(np->tf->esp-4) = (uint)0xFFFFFFF ;
 
-    
+
   np->tf->esp -= 4 ; // return address for function
 	np->tf->eip = (uint)func; // set instruction pointer to new function
-  
+
 	np->isThread = 1; // mark process as a thread.
 
-	/* 
-	allocate new stack for new process 
+	/*
+	allocate new stack for new process
 	set esp to top of the stack
 	add to esp 4096 - 4. Now esp is pointing to the top of the stack
 	at top of the stack insert arguments
@@ -551,11 +551,11 @@ int clone( void (*func)(void *), void *arg, void *stack ){
 	set esp = esp-4 (address of the return address)
 	set eip the function pointer to this system call
 	set isThread flag in proc struct
-	do we set state? 
+	do we set state?
 	*/
-	np->ustack = stack; 
+	np->ustack = stack;
 	// set new stack
-	
+
 
 	for(i = 0; i < NOFILE; i++){
 		if(proc->ofile[i]){
@@ -565,14 +565,14 @@ int clone( void (*func)(void *), void *arg, void *stack ){
 	np->cwd = idup(proc->cwd);
 
 	safestrcpy(np->name, proc->name, sizeof(proc->name));
-	
+
 	pid = np->pid;
 
 	// lock to force the compiler to emit the np->state write last.
 	acquire(&ptable.lock);
 	np->state = RUNNABLE;
 	release(&ptable.lock);
-	
+
 	return pid;
 }
 
@@ -580,7 +580,7 @@ int join(void **stack){
 	struct proc *p;
 	int havekids, pid;
 	acquire(&ptable.lock);
-	
+
 	for(;;){
 		// Scan through table looking for zombie children.
 		havekids = 0;
@@ -592,14 +592,14 @@ int join(void **stack){
 			if(p->state == ZOMBIE){
 				// Found one.
 				pid = p->pid;
-        
+
         			// copy the address of the user stack
         			*stack = p->ustack ;
-        
+
 				kfree(p->kstack);
 				p->kstack = 0;
-				//freevm(p->pgdir); 
-        			// no need to free page directory as this is the page of the parent 
+				//freevm(p->pgdir);
+        			// no need to free page directory as this is the page of the parent
 				p->state = UNUSED;
 				p->pid = 0;
 				p->parent = 0;
@@ -617,6 +617,5 @@ int join(void **stack){
 		// Wait for children to exit. (See wakeup1 call in proc_exit.)
 		sleep(proc, &ptable.lock); //DOC: wait-sleep
 	}
-	
-}
 
+}
